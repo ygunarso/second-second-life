@@ -31,6 +31,13 @@ make
 ```
 
 ## Resources
+ - [LazyFoo][]
+ - [Let's Make Games][]
+ - [CMake for SDL2 Project][]
+
+[LazyFoo]: http://lazyfoo.net/tutorials/SDL/index.php
+[Let's Make Games]: https://www.youtube.com/watch?v=QQzAHcojEKg&list=PLhfAbcv9cehhkG7ZQK0nfIGJC_C-wSLrx
+[CMake for SDL2 Project]: https://github.com/aminosbh/basic-cpp-sdl-project
 [SDL]: https://www.libsdl.org
 [CMake]: https://cmake.org
 [The Office]: https://www.nbc.com/the-office
