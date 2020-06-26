@@ -1,12 +1,11 @@
 #pragma once
 
-#include <map>
-
 #include "Components.h"
 #include "SDL2/SDL.h"
 #include "../TextureManager.h"
 #include "Animation.h"
-
+#include <map>
+#include "../AssetManager.h"
 
 class SpriteComponent : public Component {
 public:
@@ -18,11 +17,11 @@ public:
 
 	SpriteComponent() = default;
 
-	SpriteComponent(const char* path) {
-		setTex(path);
+	SpriteComponent(std::string id) {
+		setTex(id);
 	}
 
-	SpriteComponent(const char* path, bool isAnimated) {
+	SpriteComponent(std::string id, bool isAnimated) {
 		animated = isAnimated;
 
 		Animation idle = Animation(0, 3, 100);
@@ -32,15 +31,14 @@ public:
 		animations.emplace("Walk", walk);
 
 		play("Idle");
-		setTex(path);
+		setTex(id);
 	}
 
 	~SpriteComponent() {
-		SDL_DestroyTexture(texture);
 	}
 
-	void setTex(const char* path) {
-		texture = TextureManager::loadTexture(path);
+	void setTex(std::string id) {
+		texture = Game::assets->getTexture(id);
 	}
 
 	void init() override {
@@ -54,12 +52,11 @@ public:
 	void update() override {
 		if (animated) {
 			src.x = src.w * static_cast<int>((SDL_GetTicks() / speed) % frames);
-			cout << src.x << endl;
 		}
 		src.y = animIndex * transform->height;
 
-		dest.x = static_cast<int>(transform->position.x) - Game::camera.x;
-		dest.y = static_cast<int>(transform->position.y) - Game::camera.y;
+		dest.x = static_cast<int>(transform->position.x - Game::camera.x);
+		dest.y = static_cast<int>(transform->position.y - Game::camera.y);
 		dest.w = transform->width * transform->scale;
 		dest.h = transform->height * transform->scale;
 	}

@@ -4,8 +4,7 @@
 #include "ECS/Components.h"
 #include "Vector2D.h"
 #include "Collision.h"
-
-using namespace std;
+#include "AssetManager.h"
 
 Map* gameMap;
 Manager manager;
@@ -13,23 +12,13 @@ SDL_Renderer* Game::renderer = nullptr;
 SDL_Event Game::event;
 SDL_Rect Game::camera = { 0, 0, 32*39, 32*14 };
 
-//AssetManager* Game::assets = new AssetManager(&manager);
+AssetManager* Game::assets = new AssetManager(&manager);
 
 vector<ColliderComponent*> Game::colliders;
 
 auto& player(manager.addEntity());
 auto& wall(manager.addEntity());
 
-enum groupLabel : size_t {
-	groupMap,
-	groupPlayers,
-	groupEnemies,
-	groupColliders
-};
-
-auto& tiles(manager.getGroup(groupMap));
-auto& players(manager.getGroup(groupPlayers));
-auto& enemies(manager.getGroup(groupEnemies));
 
 Game::Game() {
 }
@@ -46,17 +35,17 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 	}
 
 	if (SDL_Init(SDL_INIT_EVERYTHING) == 0) {
-		cout << "Subsystems Initialized!" << endl;
+		std::cout << "Subsystems Initialized!" << std::endl;
 
 		window = SDL_CreateWindow(title, xpos, ypos, width, height, flags);
 		if (window) {
-			cout << "Window created!" << endl;
+			std::cout << "Window created!" << std::endl;
 		}
 
 		renderer = SDL_CreateRenderer(window, -1, 0);
 		if (renderer) {
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-			cout << "Renderer created!" << endl;
+			std::cout << "Renderer created!" << std::endl;
 		}
 
 		isRunning = true;
@@ -64,8 +53,10 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		isRunning = false;
 	}
 
-	//assets->addTexture("terrain", "assets/map.map");
-	//assets->addTexture("player", "assets/dwight.png");
+	assets->addTexture("terrain", "assets/map.map");
+	assets->addTexture("player", "assets/dwight.png");
+	assets->addTexture("wall", "assets/dirt.png");
+	assets->addTexture("projectile", "assets/snowball.png");
 
 	gameMap = new Map();
 
@@ -75,16 +66,23 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 
 
 	player.addComponent<TransformComponent>(4);
-	player.addComponent<SpriteComponent>("assets/dwight.png", true);
+	player.addComponent<SpriteComponent>("player", true);
 	player.addComponent<KeyboardController>();
 	player.addComponent<ColliderComponent>("player");
 	player.addGroup(groupPlayers);
 
-	wall.addComponent<TransformComponent>(300.0f, 300.0f, 300, 20, 1);
-	wall.addComponent<SpriteComponent>("assets/dirt.png");
-	wall.addComponent<ColliderComponent>("wall");
-	wall.addGroup(groupMap);
+	// wall.addComponent<TransformComponent>(300.0f, 300.0f, 300, 20, 1);
+	// wall.addComponent<SpriteComponent>("wall");
+	// wall.addComponent<ColliderComponent>("wall");
+	// wall.addGroup(groupMap);
+
+	assets->createProjectile(Vector2D(50, 300), Vector2D(2,0), 200, 2, "projectile");
 }
+
+auto& tiles(manager.getGroup(Game::groupMap));
+auto& players(manager.getGroup(Game::groupPlayers));
+auto& enemies(manager.getGroup(Game::groupEnemies));
+auto& projectiles(manager.getGroup(Game::groupProjectiles));
 
 void Game::handleEvents() {
 	SDL_PollEvent(&event);
@@ -101,7 +99,7 @@ void Game::handleEvents() {
 
 void Game::update() {
 	SDL_Rect playerCol = player.getComponent<ColliderComponent>().collider;
-	Vector2D playerPos = player.getComponent<TransformComponent>().position;
+	// Vector2D playerPos = player.getComponent<TransformComponent>().position;
 	// int playerW = player.getComponent<TransformComponent>().width;
 	// int playerH = player.getComponent<TransformComponent>().height;
 
@@ -109,9 +107,21 @@ void Game::update() {
 	manager.refresh();
 	manager.update();
 
+	for (auto& p : projectiles) {
+		std::cout << playerCol.x << ", " << playerCol.y << std::endl;
+		std::cout << p->getComponent<ColliderComponent>().collider.x << ", " << p->getComponent<ColliderComponent>().collider.y << std::endl;
+		std::cout << p->getComponent<ColliderComponent>().collider.w << ", " << p->getComponent<ColliderComponent>().collider.h << std::endl;
 
-	camera.x = player.getComponent<TransformComponent>().position.x - 32*34/2;
-	camera.y = player.getComponent<TransformComponent>().position.y - 32*17/2;
+
+ 		if(Collision::AABB(player.getComponent<ColliderComponent>().collider, p->getComponent<ColliderComponent>().collider) != NONE) {
+			std::cout << "Hit player!" << std::endl;
+			p->destroy();
+		}
+	}
+
+
+	camera.x = static_cast<int>(player.getComponent<TransformComponent>().position.x - 32*34/2);
+	camera.y = static_cast<int>(player.getComponent<TransformComponent>().position.y - 32*17/2);
 
 
 	if (camera.x < 0) {
@@ -127,38 +137,38 @@ void Game::update() {
 		camera.y = camera.h;
 	}
 
-	cout << camera.x << " " << camera.y << endl;
-	cout << playerPos << endl;
+	// cout << camera.x << " " << camera.y << endl;
+	// cout << playerPos << endl;
 
+	// for (auto c : colliders) {
+	// 	SDL_Rect cCol = c->collider;
+	// 	dir whereCol = Collision::AABB(playerCol, cCol);
+	// 	if (whereCol != NONE /*||
+	// 		player.getComponent<TransformComponent>().position.x <= 0 ||
+	// 		player.getComponent<TransformComponent>().position.x + playerW >= 1540 ||
+	// 		player.getComponent<TransformComponent>().position.y <= 0 ||
+	// 		player.getComponent<TransformComponent>().position.y + playerH >= 1200*/) {
+	// 		Collision::AABB(*c, player.getComponent<ColliderComponent>());
+	// 		switch (whereCol) {
+	// 		case UP:
+	// 			playerPos.y++;
+	// 			break;
+	// 		case DOWN:
+	// 			playerPos.y--;
+	// 			break;
+	// 		case LEFT:
+	// 			playerPos.x += 1;
+	// 			break;
+	// 		case RIGHT:
+	// 			playerPos.x--;
+	// 			break;
+	// 		default:
+	// 			break;
+	// 		}
+	// 		player.getComponent<TransformComponent>().position = playerPos;
+	// 	}
+	// }
 
-	for (auto c : colliders) {
-		SDL_Rect cCol = c->collider;
-		dir whereCol = Collision::AABB(playerCol, cCol);
-		if (whereCol != NONE /*||
-			player.getComponent<TransformComponent>().position.x <= 0 ||
-			player.getComponent<TransformComponent>().position.x + playerW >= 1540 ||
-			player.getComponent<TransformComponent>().position.y <= 0 ||
-			player.getComponent<TransformComponent>().position.y + playerH >= 1200*/) {
-			Collision::AABB(*c, player.getComponent<ColliderComponent>());
-			switch (whereCol) {
-			case UP:
-				playerPos.y++;
-				break;
-			case DOWN:
-				playerPos.y--;
-				break;
-			case LEFT:
-				playerPos.x += 1;
-				break;
-			case RIGHT:
-				playerPos.x--;
-				break;
-			default:
-				break;
-			}
-			player.getComponent<TransformComponent>().position = playerPos;
-		}
-	}
 }
 
 
@@ -176,6 +186,10 @@ void Game::render() {
 
 	for (auto& e : enemies) {
 		e->draw();
+	}
+
+	for (auto& p : projectiles) {
+		p->draw();
 	}
 
 	SDL_RenderPresent(renderer);

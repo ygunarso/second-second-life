@@ -1,4 +1,4 @@
-# (Second) Second Life - [The Office] (American TV Series) Game
+# (Second) Second Life - [The Office] Game
 
 This project is a game based on [The Office][] TV Show made with C++ and [SDL2][SDL] using [CMake][] as the build system.
 
